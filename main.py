@@ -1,6 +1,8 @@
-def main():
-    print("Hello from playlist-mcp-server!")
+from mcp.server.fastmcp import FastMCP
 
+# MCP Server Initialization
+mcp = FastMCP("playlist-mcp-server")
 
 if __name__ == "__main__":
-    main()
+    # transport="stdio"
+    mcp.run()
