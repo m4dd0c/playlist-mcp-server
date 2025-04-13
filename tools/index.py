@@ -7,12 +7,22 @@
 #
 # NOTE: ::type : done::
 #
-# search_files: [Audio] or [Playlist]
-# generate_playlist: Creates .m3u
-# edit_file: Edits .m3u files
-# get_metadata
+# search_files(): [Audio] or [Playlist]
+# list_dir_and_files(): [Audio], [Playlist], and [DIR]
+# generate_playlist(): Creates .m3u
+# edit_file(): Edits .m3u files
+# get_metadata(): Returns metadata of file.
 
 from main import mcp
+
+
+@mcp.tool()
+def list_dir_and_files():
+    """Get a detailed listing of all files and directories in a specified path.
+    Results clearly distinguish between files and directories with [Playlist], [Audio], and [DIR]
+    prefixes. This tool is essential for understanding directory structure and
+    finding specific files within a directory. Only works within allowed directories."""
+    pass
 
 
 @mcp.tool()
@@ -42,15 +52,6 @@ def edit_playlist():
     Each edit replaces exact line sequences with new content.
     Returns the changes in a way that one can understand what has changed in the playlist file.
     Only works within allowed directories."""
-    pass
-
-
-@mcp.tool()
-def list_dir_and_files():
-    """Get a detailed listing of all files and directories in a specified path.
-    Results clearly distinguish between files and directories with [Playlist], [Audio], and [DIR]
-    prefixes. This tool is essential for understanding directory structure and
-    finding specific files within a directory. Only works within allowed directories."""
     pass
 
 
