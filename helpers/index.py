@@ -67,21 +67,39 @@ def get_metadata():
 
 # @Returns a detailed listing of all files and directories in a specified path.
 def list_dir_and_files():
+    extnames = {
+        "mp3": "Audio",
+        "m4a": "Audio",
+        "wav": "Audio",
+        "wma": "Audio",
+        "flac": "Audio",
+        "aac": "Audio",
+        "ogg": "Audio",
+        "opus": "Audio",
+        "m3u": "Playlist",
+        "m3u8": "Playlist",
+        "pls": "Playlist",
+        "asx": "Playlist",
+        "wpl": "Playlist",
+        "lrc": "Lyrics",
+        "other": "File",
+    }
     try:
 
-        def lisDir(path: str, count: int):
-            count_str = "{Level " + str(count) + "}: "
+        def lisDir(path: str):
             dirs = os.listdir(path)
             for dir in dirs:
                 if os.path.isdir(os.path.abspath(os.path.join(path, dir))):
-                    print(count_str + "[DIR]:" + dir)
-                    count += 1
-                    lisDir(os.path.abspath(os.path.join(path, dir)), count)
+                    print("[DIR]:" + dir)
+                    lisDir(os.path.abspath(os.path.join(path, dir)))
                 else:
-                    print(count_str + "[FILE]:" + dir)
-                    count += 1
+                    extension = dir.split(".").pop()
+                    if extension not in extnames:
+                        extension = "other"
 
-        lisDir(sys.argv[1], 0)
+                    print("[" + extnames[extension] + "]:" + dir)
+
+        lisDir(sys.argv[1])
 
     except Exception:
         pass
