@@ -3,6 +3,20 @@
 # generate_playlist(): Creates .m3u
 # edit_file(): Edits .m3u files
 # get_metadata(): Returns metadata of file.
+import sys
+import os
+
+
+def is_valid():
+    try:
+        if sys.argv[1]:
+            if os.path.exists(sys.argv[1]):
+                return True
+            else:
+                return False
+        pass
+    except Exception:
+        return False
 
 
 # Search for audio and playlist files in a directory
@@ -54,6 +68,20 @@ def get_metadata():
 # @Returns a detailed listing of all files and directories in a specified path.
 def list_dir_and_files():
     try:
-        pass
+
+        def lisDir(path: str, count: int):
+            count_str = "{Level " + str(count) + "}: "
+            dirs = os.listdir(path)
+            for dir in dirs:
+                if os.path.isdir(os.path.abspath(os.path.join(path, dir))):
+                    print(count_str + "[DIR]:" + dir)
+                    count += 1
+                    lisDir(os.path.abspath(os.path.join(path, dir)), count)
+                else:
+                    print(count_str + "[FILE]:" + dir)
+                    count += 1
+
+        lisDir(sys.argv[1], 0)
+
     except Exception:
         pass
