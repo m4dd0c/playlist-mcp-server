@@ -165,7 +165,7 @@ def get_metadata_helper(path: str) -> List[Dict[str, str | int]] | None:
         for root, _, files in os.walk(path):
             for file in files:
                 if file.lower().endswith(extnames):
-                    file_path = os.path.join(root, path)
+                    file_path = os.path.join(root, file)
                     audio = MP3(file_path, ID3=EasyID3)
                     metadata = {
                         "filename": file,
@@ -280,7 +280,7 @@ def edit_playlist(path: str):
 
 
 @mcp.tool()
-def get_metadata(path: str):
+def get_metadata(path: str) -> List[Dict[str, str | int]] | None:
     """
     Retrieves detailed metadata about an audio file.
 
@@ -310,7 +310,7 @@ def get_metadata(path: str):
         ...
       ]
     """
-    get_metadata_helper(path)
+    return get_metadata_helper(path)
 
 
 @mcp.tool()
