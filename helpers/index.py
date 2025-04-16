@@ -5,6 +5,7 @@
 # get_metadata(): Returns metadata of file.
 import sys
 import os
+import re
 
 
 def is_valid():
@@ -21,9 +22,48 @@ def is_valid():
 
 # Search for audio and playlist files in a directory
 # Search must be within allowed directories and valid path
-def search_files():
+def search_files(pat: str):
+    extnames = {
+        "mp3": "Audio",
+        "m4a": "Audio",
+        "wav": "Audio",
+        "wma": "Audio",
+        "flac": "Audio",
+        "aac": "Audio",
+        "ogg": "Audio",
+        "opus": "Audio",
+        "m3u": "Playlist",
+        "m3u8": "Playlist",
+        "pls": "Playlist",
+        "asx": "Playlist",
+        "wpl": "Playlist",
+        "lrc": "Lyrics",
+        "other": "File",
+    }
     try:
-        pass
+        dictionary = {"Audio": [], "Playlist": [], "Lyrics": [], "File": []}
+
+        def search(path: str):
+            dirs = os.listdir(path)
+
+            for dir in dirs:
+                dir_path = os.path.abspath(os.path.join(path, dir))
+                if os.path.isdir(dir_path):
+                    search(dir_path)
+                else:
+                    match = re.search(pattern=pat, string=dir)
+                    if match:
+                        extension = dir.split(".").pop()
+                        if extension not in extnames:
+                            extension = "other"
+
+                        norm_path = os.path.normpath(dir_path)
+                        dictionary[extnames[extension]].append(norm_path)
+
+        search(sys.argv[1])
+        print(dictionary)
+        return dictionary
+
     except Exception:
         pass
 
@@ -85,21 +125,24 @@ def list_dir_and_files():
         "other": "File",
     }
     try:
+        records = []
 
-        def lisDir(path: str):
+        def explore(path: str):
             dirs = os.listdir(path)
             for dir in dirs:
                 if os.path.isdir(os.path.abspath(os.path.join(path, dir))):
-                    print("[DIR]:" + dir)
-                    lisDir(os.path.abspath(os.path.join(path, dir)))
+                    records.append("[DIR]:" + dir)
+                    explore(os.path.abspath(os.path.join(path, dir)))
                 else:
                     extension = dir.split(".").pop()
                     if extension not in extnames:
                         extension = "other"
 
-                    print("[" + extnames[extension] + "]:" + dir)
+                    records.append("[" + extnames[extension] + "]:" + dir)
 
-        lisDir(sys.argv[1])
+        explore(sys.argv[1])
+        print(records)
+        return records
 
     except Exception:
         pass
