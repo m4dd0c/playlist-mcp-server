@@ -24,7 +24,6 @@ class PlaylistMetadata(TypedDict):
 mcp = FastMCP("playlister")
 
 
-#### Check if the path is valid and secure. ####
 def is_secure(path: str) -> bool:
     """
     Returns True if the path is valid and secure.
@@ -317,7 +316,8 @@ def generate_playlist(
     **Description:**
     - Builds a playlist using `playlist_metadata_list` or appends it to an
       existing playlist file.
-    - If a playlist name is provided, uses `<playlist_name>.m3u` as the file name.
+    - If a playlist name is provided, uses `<playlist_name>` as the file name.
+    - The <playlist_name> must have the `.m3u` extension, If not append it yourself.
     - If no name is provided, generates an appropriate name automatically.
 
     **Parameters:**
