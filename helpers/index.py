@@ -57,8 +57,7 @@ def search_files(pat: str):
                         if extension not in extnames:
                             extension = "other"
 
-                        norm_path = os.path.normpath(dir_path)
-                        dictionary[extnames[extension]].append(norm_path)
+                        dictionary[extnames[extension]].append(dir_path)
 
         search(sys.argv[1])
         print(dictionary)
