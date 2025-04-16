@@ -153,7 +153,7 @@ def generate_playlist_helper(path: str, playlist_name: str | None = ""):
 
 def safe_tag(audio, key):
     val = audio.get(key)
-    return val if val else "Unknown"
+    return val[0] if val else "Unknown"
 
 
 def gen_metadata(root, file):
