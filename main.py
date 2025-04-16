@@ -2,10 +2,23 @@
 import sys
 import os
 import re
-from typing import Dict, List
 from mcp.server.fastmcp import FastMCP
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
+
+from typing import TypedDict, List, Union
+
+
+class PlaylistMetadata(TypedDict):
+    filename: str
+    file_path: str
+    title: str
+    artist: str
+    album: str
+    genre: str
+    year: Union[str, int]
+    duration: Union[str, int]
+
 
 # MCP Server Initialization
 mcp = FastMCP("playlister")
@@ -147,7 +160,7 @@ def edit_playlist_helper(path: str):
 
 #### Generate or Append to a `.m3u` file, Add the `playlist_metadata_list` ####
 def generate_playlist_helper(
-    playlist_metadata_list: List[Dict[str, str | int]],
+    playlist_metadata_list: List[PlaylistMetadata],
     playlist_name: str,
 ):
     try:
@@ -196,16 +209,16 @@ def generate_playlist_helper(
 
 #### Generate Metadata for the audio files ####
 # Optional Chaining logic in python for List
-def safe_tag(audio, key):
+def safe_tag(audio: MP3, key: str) -> str:
     val = audio.get(key)
     return val[0] if val else "Unknown"
 
 
 # Generate Metadata using mutagen
-def gen_metadata(root, file):
+def gen_metadata(root: str, file: str) -> PlaylistMetadata:
     file_path = os.path.join(root, file)
     audio = MP3(file_path, ID3=EasyID3)
-    metadata = {
+    metadata: PlaylistMetadata = {
         "filename": os.path.basename(file),
         "file_path": file_path,
         "title": safe_tag(audio, "title"),
@@ -219,7 +232,7 @@ def gen_metadata(root, file):
 
 
 # Get Metadata helper function
-def get_metadata_helper(path: str) -> List[Dict[str, str | int]] | None:
+def get_metadata_helper(path: str) -> List[PlaylistMetadata] | None:
     extnames = (".mp3", ".m4a", ".wav", ".wma", ".flac", ".aac", ".ogg", ".opus")
     try:
         records = []
@@ -296,21 +309,25 @@ def search_files(pattern: str) -> str:
 
 @mcp.tool()
 def generate_playlist(
-    playlist_metadata_list: List[Dict[str, str | int]], playlist_name: str
+    playlist_metadata_list: List[PlaylistMetadata], playlist_name: str
 ) -> bool:
     """
-    Generates a playlist file (`.m3u`) based on media files in a directory.
+    Generates a playlist file (`.m3u`) based on provided metadata.
 
     **Description:**
-    - Build a Playlist with <playlist_metadata_list> or Append <playlist_metadata_list> to an existing playlist file.
-    - If a playlist name is provided, uses `playlist-name.m3u` as the file name.
+    - Builds a playlist using `playlist_metadata_list` or appends it to an
+      existing playlist file.
+    - If a playlist name is provided, uses `<playlist_name>.m3u` as the file name.
     - If no name is provided, generates an appropriate name automatically.
 
     **Parameters:**
-    - path (str): The directory path containing media files.
+    - playlist_metadata_list (List[PlaylistMetadata]): A list of metadata
+      dictionaries for audio files.
+    - playlist_name (str): The name of the playlist file to create or append to.
 
     **Returns:**
-    - bool: True if the playlist was successfully generated or appended, False otherwise.
+    - bool: True if the playlist was successfully generated or appended,
+      False otherwise.
     """
     return generate_playlist_helper(playlist_metadata_list, playlist_name)
 
@@ -340,7 +357,7 @@ def edit_playlist(path: str):
 
 
 @mcp.tool()
-def get_metadata(path: str) -> List[Dict[str, str | int]] | None:
+def get_metadata(path: str) -> List[PlaylistMetadata] | None:
     """
     Retrieves detailed metadata about an audio file.
 
@@ -352,23 +369,8 @@ def get_metadata(path: str) -> List[Dict[str, str | int]] | None:
     - path (str): The path to the audio file.
 
     **Returns:**
-    - List[Dict[str, str | int]] | None: A List of dictionaries containing metadata about all audio files within the path.
-    None in case of error.
-
-      Optimistic Example:
-      [
-        {
-            "filename": <filename>,
-            "file_path": <file_path>,
-            "title": <title>,
-            "artist": <artist>,
-            "album": <album>,
-            "genre": <genre>,
-            "year": <year>,
-            "duration": <duration>
-        },
-        ...
-      ]
+    - List[PlaylistMetadata] | None: A List of dictionaries containing metadata about all audio files within the path.
+      None in case of error.
     """
     return get_metadata_helper(path)
 
