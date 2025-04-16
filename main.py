@@ -24,38 +24,6 @@ class PlaylistMetadata(TypedDict):
 mcp = FastMCP("playlister")
 
 
-def is_secure(path: str) -> bool:
-    """
-    Returns True if the path is valid and secure.
-
-    Conditions:
-        Check if the root_path (sys.argv[1]) is valid or not
-        Check if the params:path is valid or not
-        Check if the params:path resides within the root_path or not
-
-    Args:
-        path (str): The path to check.
-
-    Returns:
-        bool: True if all conditions are met, False otherwise.
-    """
-
-    try:
-        root = os.path.abspath(sys.argv[1])
-        target = os.path.abspath(path)
-
-        is_valid_root = os.path.exists(root)
-        is_valid_target = os.path.exists(target)
-        has_common_prefix = os.path.commonpath([root]) == os.path.commonpath(
-            [root, target]
-        )
-
-        return is_valid_root and is_valid_target and has_common_prefix
-
-    except Exception:
-        return False
-
-
 #### List all files and directories in a specified path with detailed categorization. ####
 def list_dir_and_files_helper() -> str:
     extnames = {
@@ -373,6 +341,39 @@ def get_metadata(path: str) -> List[PlaylistMetadata] | None:
       None in case of error.
     """
     return get_metadata_helper(path)
+
+
+@mcp.tool()
+def is_allowed_path(path: str) -> bool:
+    """
+    Returns True if the path is valid and secure.
+
+    Conditions:
+        Check if the root_path (sys.argv[1]) is valid or not
+        Check if the params:path is valid or not
+        Check if the params:path resides within the root_path or not
+
+    Args:
+        path (str): The path to check.
+
+    Returns:
+        bool: True if all conditions are met, False otherwise.
+    """
+
+    try:
+        root = os.path.abspath(sys.argv[1])
+        target = os.path.abspath(path)
+
+        is_valid_root = os.path.exists(root)
+        is_valid_target = os.path.exists(target)
+        has_common_prefix = os.path.commonpath([root]) == os.path.commonpath(
+            [root, target]
+        )
+
+        return is_valid_root and is_valid_target and has_common_prefix
+
+    except Exception:
+        return False
 
 
 @mcp.tool()
