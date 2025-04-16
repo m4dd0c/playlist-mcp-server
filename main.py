@@ -1,7 +1,11 @@
-from mcp.server.fastmcp import FastMCP
+# todo: use os.walk for efficiency
 import sys
 import os
 import re
+from typing import Dict, List, Optional
+from mcp.server.fastmcp import FastMCP
+from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
 
 # MCP Server Initialization
 mcp = FastMCP("playlister")
@@ -149,11 +153,37 @@ def generate_playlist_helper(path: str, playlist_name: str | None = ""):
 
 # @Returns metadata of the media file, including: Author, Album, Title, Genre, Year, Duration, and Bitrate.
 # Other infomation like: size, name, last modified time, permissions, and type.
-def get_metadata_helper(path: str):
+def safe_tag(audio, key):
+    val = audio.get(key)
+    return val if val else "Unknown"
+
+
+def get_metadata_helper(path: str) -> List[Dict[str, str | int]] | None:
+    extnames = (".mp3", ".m4a", ".wav", ".wma", ".flac", ".aac", ".ogg", ".opus")
     try:
-        print("Get-Metadata: Yet to build", path)
+        records = []
+        for root, _, files in os.walk(path):
+            for file in files:
+                if file.lower().endswith(extnames):
+                    file_path = os.path.join(root, path)
+                    audio = MP3(file_path, ID3=EasyID3)
+                    metadata = {
+                        "filename": file,
+                        "file_path": file_path,
+                        "title": safe_tag(audio, "title"),
+                        "artist": safe_tag(audio, "artist"),
+                        "album": safe_tag(audio, "album"),
+                        "genre": safe_tag(audio, "genre"),
+                        "year": safe_tag(audio, "date"),
+                        "duration": round(audio.info.length, 2),
+                    }
+
+                    records.append(metadata)
+
+        return records
+
     except Exception:
-        pass
+        return None
 
 
 @mcp.tool()
@@ -262,23 +292,32 @@ def get_metadata(path: str):
     - path (str): The path to the audio file.
 
     **Returns:**
-    - dict: A dictionary containing metadata about the file.
-      Example:
-      {
-          "size": ...,
-          "duration": ...,
-          "author": ...,
-          "genre": ...,
-          "last_modified": ...,
-          "permissions": ...,
-          "type": ...
-      }
+    - List[Dict[str, str | int]] | None: A List of dictionaries containing metadata about all audio files within the path.
+    None in case of error.
+
+      Optimistic Example:
+      [
+        {
+            "filename": <filename>,
+            "file_path": <file_path>,
+            "title": <title>,
+            "artist": <artist>,
+            "album": <album>,
+            "genre": <genre>,
+            "year": <year>,
+            "duration": <duration>
+        },
+        ...
+      ]
     """
     get_metadata_helper(path)
 
 
 @mcp.tool()
 def list_allowed_directory() -> str:
+    """
+    Returns the allowed directory path for the application.
+    """
     return sys.argv[1]
 
 
