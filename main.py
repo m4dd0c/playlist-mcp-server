@@ -11,6 +11,7 @@ from mutagen.mp3 import MP3
 mcp = FastMCP("playlister")
 
 
+#### Check if the path is valid and secure. ####
 def is_secure(path: str) -> bool:
     """
     Returns True if the path is valid and secure.
@@ -43,7 +44,7 @@ def is_secure(path: str) -> bool:
         return False
 
 
-# @Returns a detailed listing of all files and directories in a specified path.
+#### List all files and directories in a specified path with detailed categorization. ####
 def list_dir_and_files_helper() -> str:
     extnames = {
         "mp3": "Audio",
@@ -90,6 +91,7 @@ def list_dir_and_files_helper() -> str:
         return ""
 
 
+#### Search for files matching a specific pattern recursively within a directory. ####
 def search_files_helper(pat: str) -> str:
     extnames = {
         "mp3": "Audio",
@@ -134,7 +136,7 @@ def search_files_helper(pat: str) -> str:
         return ""
 
 
-# Make line-based edits to a `.m3u` file.
+# todo: Make line-based edits to a `.m3u` file.
 # Add, remove, or re-order songs in the playlist.
 def edit_playlist_helper(path: str):
     try:
@@ -143,19 +145,63 @@ def edit_playlist_helper(path: str):
         pass
 
 
-# Generate a `.m3u` file, Add all the `media` that has been categorised.
-def generate_playlist_helper(path: str, playlist_name: str | None = ""):
+#### Generate or Append to a `.m3u` file, Add the `playlist_metadata_list` ####
+def generate_playlist_helper(
+    playlist_metadata_list: List[Dict[str, str | int]],
+    playlist_name: str,
+):
     try:
-        print("Generate-Playlist: Yet to build", path, playlist_name)
+        store = sys.argv[1]
+
+        sub_dirs = os.listdir(store)
+        if "Playlist" not in sub_dirs:
+            os.mkdir(os.path.join(store, "Playlist"))
+
+        # Forming the path for the playlist
+        playlist_path = os.path.join(store, "Playlist", playlist_name)
+
+        # If the playlist already exists, appending to it, Otherwise creating a new one
+        if os.path.exists(playlist_path):
+            file_mode = "a+"
+        else:
+            file_mode = "w+"
+
+        with open(playlist_path, file_mode) as f:
+            # Moving cursor to the beginning of the file (a+ mode)
+            f.seek(0)
+
+            # Checking if the file already has the #EXTM3U header, Otherwise writing it
+            extm3u_written = False
+
+            for line in f.readlines():
+                if line.strip().startswith("#EXTM3U"):
+                    extm3u_written = True
+                    break
+
+            if not extm3u_written:
+                f.write("#EXTM3U\n")
+
+            # Writing the metadata of each audio file to the playlist
+            for audio in playlist_metadata_list:
+                f.write(f"\n#EXTINF:{audio['duration']}, {audio['title']}\n")
+                f.write(f"{audio['file_path']}\n")
+
+            f.close()
+
+        return True
+
     except Exception:
-        pass
+        return False
 
 
+#### Generate Metadata for the audio files ####
+# Optional Chaining logic in python for List
 def safe_tag(audio, key):
     val = audio.get(key)
     return val[0] if val else "Unknown"
 
 
+# Generate Metadata using mutagen
 def gen_metadata(root, file):
     file_path = os.path.join(root, file)
     audio = MP3(file_path, ID3=EasyID3)
@@ -172,6 +218,7 @@ def gen_metadata(root, file):
     return metadata
 
 
+# Get Metadata helper function
 def get_metadata_helper(path: str) -> List[Dict[str, str | int]] | None:
     extnames = (".mp3", ".m4a", ".wav", ".wma", ".flac", ".aac", ".ogg", ".opus")
     try:
@@ -248,22 +295,24 @@ def search_files(pattern: str) -> str:
 
 
 @mcp.tool()
-def generate_playlist(path: str, playlist_name: str | None = ""):
+def generate_playlist(
+    playlist_metadata_list: List[Dict[str, str | int]], playlist_name: str
+) -> bool:
     """
     Generates a playlist file (`.m3u`) based on media files in a directory.
 
     **Description:**
-    - Scans the specified directory for media files and creates a playlist.
-    - If a playlist name is provided, uses `[playlist-name].m3u` as the file name.
+    - Build a Playlist with <playlist_metadata_list> or Append <playlist_metadata_list> to an existing playlist file.
+    - If a playlist name is provided, uses `playlist-name.m3u` as the file name.
     - If no name is provided, generates an appropriate name automatically.
 
     **Parameters:**
     - path (str): The directory path containing media files.
 
     **Returns:**
-    - str: The path to the generated playlist file.
+    - bool: True if the playlist was successfully generated or appended, False otherwise.
     """
-    generate_playlist_helper(path, playlist_name)
+    return generate_playlist_helper(playlist_metadata_list, playlist_name)
 
 
 @mcp.tool()
