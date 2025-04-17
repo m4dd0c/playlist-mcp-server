@@ -88,32 +88,24 @@ def search_files_helper(pat: str) -> str:
         "asx": "Playlist",
         "wpl": "Playlist",
         "lrc": "Lyrics",
-        "other": "File",
     }
-    try:
-        records = []
 
-        def search(path: str):
-            dirs = os.listdir(path)
+    records = []
 
-            for dir in dirs:
-                dir_path = os.path.abspath(os.path.join(path, dir))
-                if os.path.isdir(dir_path):
-                    search(dir_path)
-                else:
-                    match = re.search(pattern=pat, string=dir)
-                    if match:
-                        extension = dir.split(".").pop()
-                        if extension not in extnames:
-                            extension = "other"
+    def search(path: str):
+        try:
+            for entry in os.scandir(path):
+                if entry.is_dir():
+                    search(entry.path)
+                elif re.search(pat, entry.name, flags=re.IGNORECASE):
+                    extension = entry.name.split(".")[-1].lower()
+                    category = extnames.get(extension, "File")
+                    records.append(f"[{category}]: {entry.path}")
+        except Exception:
+            pass
 
-                        records.append(f"[{extnames[extension]}]: {dir_path}")
-
-        search(sys.argv[1])
-        return "\n".join(records)
-
-    except Exception:
-        return ""
+    search(sys.argv[1])
+    return "\n".join(records)
 
 
 #### Remove entries in a playlist ####
