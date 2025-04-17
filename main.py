@@ -232,6 +232,7 @@ def get_metadata_helper(path: str) -> List[PlaylistMetadata] | None:
         return None
 
 
+#### Read Playlist Content ####
 def read_playlist_content_helper(path: str) -> str:
     try:
         with open(path, "r") as f:
