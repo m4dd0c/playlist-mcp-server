@@ -116,11 +116,32 @@ def search_files_helper(pat: str) -> str:
         return ""
 
 
-# todo: Make line-based edits to a `.m3u` file.
-# Add, remove, or re-order songs in the playlist.
-def edit_playlist_helper(path: str):
+def edit_playlist_helper(
+    path: str, songs_to_add: List[PlaylistMetadata], songs_to_remove: List[str]
+):
     try:
-        print("Edit-File: Yet to build", path)
+        with open(path, "r") as f:
+            lines = f.readlines()
+
+        # Remove specified songs
+        updated_lines = [
+            line for line in lines if not any(song in line for song in songs_to_remove)
+        ]
+
+        # Add new songs
+        for song in songs_to_add:
+            updated_lines.append(f"\n#EXTINF:{song['duration']}, {song['title']}\n")
+            updated_lines.append(f"{song['file_path']}\n")
+
+        with open(path, "w") as f:
+            f.writelines(updated_lines)
+
+        return {
+            "added": len(songs_to_add),
+            "removed": len(songs_to_remove),
+            "total_lines": len(updated_lines),
+        }
+
     except Exception:
         pass
 
