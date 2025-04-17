@@ -116,34 +116,35 @@ def search_files_helper(pat: str) -> str:
         return ""
 
 
-def edit_playlist_helper(
-    path: str, songs_to_add: List[PlaylistMetadata], songs_to_remove: List[str]
+#### Remove entries in a playlist ####
+def remove_song_from_playlist_helper(
+    path: str,
+    songs_to_remove: List[str],
 ):
     try:
         with open(path, "r") as f:
             lines = f.readlines()
 
-        # Remove specified songs
-        updated_lines = [
-            line for line in lines if not any(song in line for song in songs_to_remove)
-        ]
+        updated_lines = []
+        for i, line in enumerate(lines):
+            # Check if the current line is a song path to be removed
+            if any(song == line.strip() for song in songs_to_remove):
+                # Skip the metadata line (previous line) and the song path line
+                if i > 0:  # Ensure we don't go out of bounds
+                    updated_lines.pop()  # Remove the metadata line
+                continue
 
-        # Add new songs
-        for song in songs_to_add:
-            updated_lines.append(f"\n#EXTINF:{song['duration']}, {song['title']}\n")
-            updated_lines.append(f"{song['file_path']}\n")
+            updated_lines.append(line)
 
-        with open(path, "w") as f:
-            f.writelines(updated_lines)
+        if updated_lines:
+            with open(path, "w") as f:
+                f.writelines(updated_lines)
 
-        return {
-            "added": len(songs_to_add),
-            "removed": len(songs_to_remove),
-            "total_lines": len(updated_lines),
-        }
+        return True
 
-    except Exception:
-        pass
+    except Exception as e:
+        print(e)
+        return False
 
 
 #### Generate or Append to a `.m3u` file, Add the `playlist_metadata_list` ####
@@ -300,10 +301,10 @@ def generate_playlist(
     playlist_metadata_list: List[PlaylistMetadata], playlist_name: str
 ) -> bool:
     """
-    Generates a playlist file (`.m3u`) based on provided metadata.
+    Generates a playlist file (`.m3u`) based on provided metadata or Append songs to the existing Playlist.
 
     **Description:**
-    - Builds a playlist using `playlist_metadata_list` or appends it to an
+    - Builds a playlist using `playlist_metadata_list` or appends playlist_metadata_list to an
       existing playlist file.
     - If a playlist name is provided, uses `<playlist_name>` as the file name.
     - The <playlist_name> must have the `.m3u` extension, If not append it yourself.
@@ -322,27 +323,18 @@ def generate_playlist(
 
 
 @mcp.tool()
-def edit_playlist(path: str):
+def remove_song_from_playlist(path: str, songs_to_remove: List[str]):
     """
-    Edits a playlist file (`.m3u`) by making line-based modifications.
-
-    **Description:**
-    - Allows editing of playlist files by replacing specific line sequences.
-    - Useful for reordering, adding, or removing entries in a playlist.
+    - Allow removing entries in a playlist.
 
     **Parameters:**
     - path (str): The path to the playlist file to be edited.
+    - songs_to_remove (str): List of path of songs to be removed.
 
     **Returns:**
-    - dict: A summary of changes made to the playlist.
-      Example:
-      {
-          "added": [...],
-          "removed": [...],
-          "modified": [...]
-      }
+    - bool: Returns True if operation was successful, False otherwise.
     """
-    edit_playlist_helper(path)
+    remove_song_from_playlist_helper(path, songs_to_remove)
 
 
 @mcp.tool()
