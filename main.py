@@ -17,7 +17,7 @@ class PlaylistMetadata(TypedDict):
     album: str
     genre: str
     year: Union[str, int]
-    duration: Union[str, int]
+    duration: Union[str, float]
 
 
 # MCP Server Initialization
