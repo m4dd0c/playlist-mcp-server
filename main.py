@@ -1,4 +1,3 @@
-# todo: use os.walk for efficiency
 import sys
 import os
 import re
@@ -10,13 +9,8 @@ from typing import TypedDict, List, Union
 
 
 class PlaylistMetadata(TypedDict):
-    filename: str
     file_path: str
     title: str
-    artist: str
-    album: str
-    genre: str
-    year: Union[str, int]
     duration: Union[str, float]
 
 
@@ -25,7 +19,7 @@ mcp = FastMCP("playlister")
 
 
 #### List all files and directories in a specified path with detailed categorization. ####
-def list_dir_and_files_helper() -> str:
+def list_dir_and_files_helper(page: int = 1, page_size: int = 100) -> str:
     extnames = {
         "mp3": "Audio",
         "m4a": "Audio",
@@ -45,30 +39,35 @@ def list_dir_and_files_helper() -> str:
         "dir": "DIR",
     }
     try:
-        records = []
+        all_records = []
 
-        def explore(path: str):
-            dirs = os.listdir(path)
+        for root, dirs, files in os.walk(sys.argv[1]):
+            # Add dirs to the records
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                all_records.append(f"[DIR]: {os.path.abspath(dir_path)}")
 
-            for dir in dirs:
-                dir_path = os.path.abspath(os.path.join(path, dir))
+            # Add files to the records
+            for file_name in files:
+                file_path = os.path.join(root, file_name)
+                extension = file_name.split(".")[-1].lower()
+                category = extnames.get(extension, "File")
+                all_records.append(f"[{category}]: {os.path.abspath(file_path)}")
 
-                if os.path.isdir(dir_path):
-                    records.append(f"[DIR]: {dir_path}")
-                    explore(dir_path)
+        # Pagination
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_records = all_records[start:end]
 
-                else:
-                    extension = dir.split(".").pop()
-                    if extension not in extnames:
-                        extension = "other"
+        if not paginated_records:
+            return (
+                f"Previous page was the last page.\nNo results found for page {page}."
+            )
 
-                    records.append(f"[{extnames[extension]}]: {dir_path}")
-
-        explore(sys.argv[1])
-        return "\n".join(records)
+        return "\n".join(paginated_records)
 
     except Exception:
-        return ""
+        return "An error occurred. Please check the input."
 
 
 #### Search for files matching a specific pattern recursively within a directory. ####
@@ -134,8 +133,7 @@ def remove_song_from_playlist_helper(
 
         return True
 
-    except Exception as e:
-        print(e)
+    except Exception:
         return False
 
 
@@ -156,9 +154,9 @@ def generate_playlist_helper(
 
         # If the playlist already exists, appending to it, Otherwise creating a new one
         if os.path.exists(playlist_path):
-            file_mode = "a+"
+            file_mode = "+a"
         else:
-            file_mode = "w+"
+            file_mode = "+w"
 
         with open(playlist_path, file_mode) as f:
             # Moving cursor to the beginning of the file (a+ mode)
@@ -200,13 +198,8 @@ def gen_metadata(root: str, file: str) -> PlaylistMetadata:
     file_path = os.path.join(root, file)
     audio = MP3(file_path, ID3=EasyID3)
     metadata: PlaylistMetadata = {
-        "filename": os.path.basename(file),
         "file_path": file_path,
         "title": safe_tag(audio, "title"),
-        "artist": safe_tag(audio, "artist"),
-        "album": safe_tag(audio, "album"),
-        "genre": safe_tag(audio, "genre"),
-        "year": safe_tag(audio, "date"),
         "duration": round(audio.info.length, 2),
     }
     return metadata
@@ -218,13 +211,14 @@ def get_metadata_helper(path: str) -> List[PlaylistMetadata] | None:
     try:
         records = []
 
-        # Check if the path is a file or directory
+        # If the path is a file
         if path.lower().endswith(extnames):
             # First path is serving as root
             # Second path is serving as file, Basically os.path.basename(path), Basically filename
             metadata = gen_metadata(path, path)
             records.append(metadata)
 
+        # If the path is a directory
         else:
             for root, _, files in os.walk(path):
                 for file in files:
@@ -238,28 +232,37 @@ def get_metadata_helper(path: str) -> List[PlaylistMetadata] | None:
         return None
 
 
+def read_playlist_content_helper(path: str) -> str:
+    try:
+        with open(path, "r") as f:
+            return f.read()
+    except Exception:
+        return "An error occurred. Please check the input."
+
+
 @mcp.tool()
-def list_dir_and_files() -> str:
+def list_dir_and_files(page: int = 1, page_size: int = 100) -> str:
     """
     Lists all files and directories in a specified path with detailed categorization.
 
     **Description:**
     - Scans the given directory and its subdirectories.
     - Categorizes files and directories with tags like [Playlist], [Audio], [Lyrics], [FILE], and [DIR].
-    - Helps in understanding the directory structure and locating specific files.
+    - Supports pagination to avoid excessive output.
 
     **Parameters:**
-    - None (uses the root directory specified in the system configuration).
+    - page (int): The page number to retrieve. Default is 1.
+    - page_size (int): The number of results per page. Default is 100.
 
     **Returns:**
-    - str: A String with categorized lists of matching file paths.
+    - str: A String with categorized lists of matching file paths for the specified page.
       Example:
           [Audio]: <audio_name>
           [Playlist]: <playlist_name>
           [Lyrics]:  <lyrics_name>
           [File]: <file_name>
     """
-    return list_dir_and_files_helper()
+    return list_dir_and_files_helper(page, page_size)
 
 
 @mcp.tool()
@@ -330,13 +333,27 @@ def remove_song_from_playlist(path: str, songs_to_remove: List[str]):
 
 
 @mcp.tool()
+def read_playlist_content(path: str) -> str:
+    """
+    Reads the content of a playlist file and returns it as a string.
+
+    **Parameters:**
+    - path (str): The path to the playlist file to be read.
+
+    **Returns:**
+    - str: The content of the playlist file.
+    """
+    return read_playlist_content_helper(path)
+
+
+@mcp.tool()
 def get_metadata(path: str) -> List[PlaylistMetadata] | None:
     """
     Retrieves detailed metadata about an audio file.
+    The tool only takes a path to the audio file, and cannot handle directories or playlist paths.
 
     **Description:**
-    - Extracts metadata such as size, duration, author, genre, last modified time, permissions, and file type.
-    - Useful for analyzing file characteristics without accessing the file's content.
+    - Extracts metadata such as title, file_path, and duration of a music file.
 
     **Parameters:**
     - path (str): The path to the audio file.
@@ -387,6 +404,19 @@ def list_allowed_directory() -> str:
     Returns the allowed directory path for the application.
     """
     return sys.argv[1]
+
+
+@mcp.tool()
+def welcome() -> str:
+    """
+    It is a welcome function that executes when the server starts.
+    It has some intructions for the claude to follow.
+    It is like a system command.
+
+    **Instructions**:
+    Keep the response as short as possible.
+    """
+    return "Keep the response as short as possible."
 
 
 if __name__ == "__main__":
