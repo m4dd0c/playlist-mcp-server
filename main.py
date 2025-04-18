@@ -119,7 +119,7 @@ def remove_song_from_playlist_helper(
         updated_lines = []
         for i, line in enumerate(lines):
             # Check if the current line is a song path to be removed
-            if any(song == line.strip() for song in songs_to_remove):
+            if any(os.path.realpath(song) == line.strip() for song in songs_to_remove):
                 # Skip the metadata line (previous line) and the song path line
                 if i > 0:  # Ensure we don't go out of bounds
                     updated_lines.pop()  # Remove the metadata line
@@ -198,7 +198,7 @@ def gen_metadata(root: str, file: str) -> PlaylistMetadata:
     file_path = os.path.join(root, file)
     audio = MP3(file_path, ID3=EasyID3)
     metadata: PlaylistMetadata = {
-        "file_path": file_path,
+        "file_path": os.path.realpath(file_path),
         "title": safe_tag(audio, "title"),
         "duration": round(audio.info.length, 2),
     }
